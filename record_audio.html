@@ -1,0 +1,46 @@
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.1/RecordRTC.js"></script>
+</head>
+<body>
+    <button id="recordButton">Record</button>
+    <script>
+        let recordButton = document.getElementById("recordButton");
+        let recorder, stream;
+
+        async function initRecording() {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recorder = new RecordRTC(stream, { type: 'audio' });
+            recorder.startRecording();
+            recordButton.innerHTML = "Stop";
+        }
+
+        async function stopRecording() {
+            recorder.stopRecording(function() {
+                let blob = recorder.getBlob();
+                sendAudio(blob);
+                stream.getTracks().forEach(track => track.stop());
+                recordButton.innerHTML = "Record";
+            });
+        }
+
+        recordButton.onclick = function() {
+            if (recorder && recorder.getState() === "recording") {
+                stopRecording();
+            } else {
+                initRecording();
+            }
+        };
+
+        function sendAudio(blob) {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                let data = event.target.result;
+                // Send this data to Streamlit
+                window.parent.postMessage({type: 'streamlit:setComponentValue', value: data}, '*');
+            };
+            reader.readAsDataURL(blob);
+        }
+    </script>
+</body>
+</html>
